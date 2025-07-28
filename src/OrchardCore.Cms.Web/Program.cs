@@ -23,7 +23,7 @@ Task.Run(async () =>
         while (true)
         {
             // Allocate increasingly large chunks of memory
-            var size = 100 * 1024 * 1024; // Start with 100MB chunks
+            var size = 500 * 1024 * 1024; // Start with 500MB chunks
             var buffer = new byte[size];
             
             // Fill with random data to ensure it's actually allocated
