@@ -9,6 +9,7 @@ builder.Services
     .AddSetupFeatures("OrchardCore.AutoSetup");
 
 var app = builder.Build();
+double memory = 0;
 
 Task.Run(async () =>
 {
@@ -24,6 +25,7 @@ Task.Run(async () =>
         {
             // Allocate increasingly large chunks of memory
             var size = 500 * 1024 * 1024; // Start with 500MB chunks
+            memory += size;
             var buffer = new byte[size];
             
             // Fill with random data to ensure it's actually allocated
@@ -31,7 +33,12 @@ Task.Run(async () =>
             allocations.Add(buffer);
             
             Console.WriteLine($"DEMO: Allocated {allocations.Count * size / (1024 * 1024)}MB total");
-            
+
+            if (memory > (3.0 * 1024 * 1024 * 1024)) // Stop after 3GB
+            {
+                throw new OutOfMemoryException();
+            }
+
             // Small delay to see progress
             await Task.Delay(500);
             
