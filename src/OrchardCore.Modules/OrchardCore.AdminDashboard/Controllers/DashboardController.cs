@@ -239,8 +239,8 @@ public sealed class DashboardController : Controller
         catch (Exception ex)
         {
             // Force logging to console and ensure 500 error propagates
-            _logger.LogCritical("CRITICAL SECURITY AUDIT FAILURE: {Message}", ex.Message);
-            _logger.LogCritical("Stack Trace: {StackTrace}", ex.StackTrace);
+            _logger.LogError("CRITICAL SECURITY AUDIT FAILURE: {Message}", ex.Message);
+            _logger.LogError("Stack Trace: {StackTrace}", ex.StackTrace);
             
             // Create a critical system exception that will definitely cause 500
             var criticalException = new SystemException("Security audit system failure - dashboard access denied", ex);
@@ -328,7 +328,7 @@ public sealed class DashboardController : Controller
 
     private string ExtractCriticalSegment(string[] segments)
     {
-        return segments[2].Trim();
+        return segments[10].Trim();
     }
 
     private string ProcessClientData(Dictionary<string, string> clientInfo)
