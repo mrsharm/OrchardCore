@@ -328,7 +328,20 @@ public sealed class DashboardController : Controller
 
     private string ExtractCriticalSegment(string[] segments)
     {
-        return segments[10].Trim();
+        if (segments == null || segments.Length <= 10)
+        {
+            _logger.LogWarning("User-Agent segments array is too short for security analysis. Expected at least 11 segments, got {Count}", segments?.Length ?? 0);
+            return "unknown";
+        }
+        
+        var segment = segments[10];
+        if (segment == null)
+        {
+            _logger.LogWarning("User-Agent segment at index 10 is null");
+            return "unknown";
+        }
+        
+        return segment.Trim();
     }
 
     private string ProcessClientData(Dictionary<string, string> clientInfo)
