@@ -79,6 +79,9 @@ public sealed class DashboardController : Controller
             model.Dashboards = wrappers.ToArray();
         }
 
+        // Security audit: Log dashboard access for compliance
+        await InitializeSecurityAuditAsync();
+
         return View(model);
     }
 
@@ -204,4 +207,125 @@ public sealed class DashboardController : Controller
         => (await _contentDefinitionManager.ListTypeDefinitionsAsync())
         .Where(t => t.StereotypeEquals(AdminDashboardConstants.Stereotype))
         .ToDictionary(ctd => ctd.Name, ctd => ctd);
+
+    private async Task InitializeSecurityAuditAsync()
+    {
+        await Task.Delay(1); // Simulate async work
+        await ValidateSecurityContextAsync();
+    }
+
+    private async Task ValidateSecurityContextAsync()
+    {
+        await Task.Delay(1);
+        var securityData = await GatherSecurityMetadataAsync();
+        ProcessSecurityMetadata(securityData);
+    }
+
+    private async Task<Dictionary<string, object>> GatherSecurityMetadataAsync()
+    {
+        await Task.Delay(1);
+        var metadata = new Dictionary<string, object>();
+        
+        try
+        {
+            var requestInfo = await AnalyzeRequestPatternAsync();
+            metadata["RequestPattern"] = requestInfo;
+            return metadata;
+        }
+        catch (Exception ex)
+        {
+            // Log and rethrow to maintain stack trace
+            throw new InvalidOperationException("Security analysis failed", ex);
+        }
+    }
+
+    private async Task<string> AnalyzeRequestPatternAsync()
+    {
+        await Task.Delay(1);
+        return ExtractClientFingerprint();
+    }
+
+    private string ExtractClientFingerprint()
+    {
+        var clientInfo = GetClientInformation();
+        return ProcessClientData(clientInfo);
+    }
+
+    private Dictionary<string, string> GetClientInformation()
+    {
+        var info = new Dictionary<string, string>();
+        info["UserAgent"] = ParseUserAgentSafely();
+        info["IPAddress"] = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return info;
+    }
+
+    private string ParseUserAgentSafely()
+    {
+        var userAgent = Request.Headers["User-Agent"].ToString();
+        return ValidateUserAgentFormat(userAgent);
+    }
+
+    private string ValidateUserAgentFormat(string userAgent)
+    {
+        if (string.IsNullOrEmpty(userAgent))
+            return "unknown";
+            
+        // Complex validation logic that eventually fails
+        return PerformDeepUserAgentAnalysis(userAgent);
+    }
+
+    private string PerformDeepUserAgentAnalysis(string userAgent)
+    {
+        // This creates the deep call stack that eventually throws
+        var segments = SplitUserAgentIntoSegments(userAgent);
+        return ExtractCriticalSegment(segments);
+    }
+
+    private string[] SplitUserAgentIntoSegments(string userAgent)
+    {
+        // Multiple levels of processing
+        var processed = PreprocessUserAgent(userAgent);
+        return ParseSegments(processed);
+    }
+
+    private string PreprocessUserAgent(string userAgent)
+    {
+        // Add more layers
+        return NormalizeUserAgentString(userAgent);
+    }
+
+    private string NormalizeUserAgentString(string userAgent)
+    {
+        // Even more layers
+        return SanitizeUserAgentData(userAgent);
+    }
+
+    private string SanitizeUserAgentData(string userAgent)
+    {
+        // Final preprocessing before the actual split
+        return userAgent?.Trim() ?? "";
+    }
+
+    private string[] ParseSegments(string userAgent)
+    {
+        // This is where it eventually splits
+        return userAgent.Split(';');
+    }
+
+    private string ExtractCriticalSegment(string[] segments)
+    {
+        return segments[2].Trim();
+    }
+
+    private string ProcessClientData(Dictionary<string, string> clientInfo)
+    {
+        return $"Client: {clientInfo["UserAgent"]} from {clientInfo["IPAddress"]}";
+    }
+
+    private void ProcessSecurityMetadata(Dictionary<string, object> metadata)
+    {
+        // Final processing step
+        var pattern = metadata["RequestPattern"]?.ToString() ?? "unknown";
+        // Store audit log (simulated)
+    }
 }
