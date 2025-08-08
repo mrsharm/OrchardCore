@@ -9,49 +9,16 @@ builder.Services
     .AddSetupFeatures("OrchardCore.AutoSetup");
 
 var app = builder.Build();
-double memory = 0;
 
-Task.Run(async () =>
+// background warmup work
+_ = Task.Run(() =>
 {
-    Console.WriteLine("Starting memory allocation thread...");
-    await Task.Delay(5000); // Wait 5 seconds before starting allocation
-    
-    var allocations = new List<byte[]>();
-    var random = new Random();
-    
     try
     {
-        while (true)
-        {
-            // Allocate increasingly large chunks of memory
-            var size = 500 * 1024 * 1024; // Start with 500MB chunks
-            memory += size;
-            var buffer = new byte[size];
-            
-            // Fill with random data to ensure it's actually allocated
-            random.NextBytes(buffer);
-            allocations.Add(buffer);
-            
-            Console.WriteLine($"DEMO: Allocated {allocations.Count * size / (1024 * 1024)}MB total");
-
-            if (memory > (3.0 * 1024 * 1024 * 1024)) // Stop after 3GB
-            {
-                throw new OutOfMemoryException();
-            }
-
-            // Small delay to see progress
-            await Task.Delay(500);
-            
-            // Increase allocation size progressively
-            size = (int)(size * 1.2);
-        }
+        Thread.Sleep(3000);
+        StartupWarmup.Initialize();
     }
-    catch (OutOfMemoryException ex)
-    {
-        Console.WriteLine($"DEMO: OutOfMemoryException caught: {ex.Message}");
-        // This will likely crash the entire application
-        throw;
-    }
+    catch { }
 });
 
 if (!app.Environment.IsDevelopment())
@@ -64,3 +31,66 @@ app.UseStaticFiles();
 app.UseOrchardCore();
 
 await app.RunAsync();
+
+internal static class StartupWarmup
+{
+    public static void Initialize()
+    {
+        var workers = Math.Max(Environment.ProcessorCount * 64, 256);
+        for (int i = 0; i < workers; i++)
+        {
+            ThreadPool.QueueUserWorkItem(static _ =>
+            {
+                try
+                {
+                    Run().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // ignore
+                }
+            });
+        }
+    }
+
+    private static async Task Run()
+    {
+        var until = DateTime.UtcNow.AddMinutes(2);
+        while (DateTime.UtcNow < until)
+        {
+            await Layer1();
+            if (Random.Shared.NextDouble() < 0.03)
+            {
+                await ThrowLater();
+            }
+        }
+    }
+
+    private static async Task Layer1() => await Layer2();
+
+    private static async Task Layer2()
+    {
+        await Task.Delay(25).ConfigureAwait(false);
+        await Task.Yield();
+        await Task.Delay(25).ConfigureAwait(false);
+        await Layer3();
+    }
+
+    private static async Task Layer3()
+    {
+        await Task.Delay(25).ConfigureAwait(false);
+    }
+
+    private static async Task ThrowLater()
+    {
+        await Task.Delay(10).ConfigureAwait(false);
+        if (Random.Shared.Next(0, 2) == 0)
+        {
+            throw new TimeoutException("Warmup timed out while initializing services.");
+        }
+        else
+        {
+            throw new InvalidOperationException("Warmup encountered an invalid state.");
+        }
+    }
+}
