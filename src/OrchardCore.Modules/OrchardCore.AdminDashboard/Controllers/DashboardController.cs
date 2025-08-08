@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Logging;
 using OrchardCore.Admin;
 using OrchardCore.AdminDashboard.Models;
 using OrchardCore.AdminDashboard.Services;
@@ -25,6 +26,7 @@ public sealed class DashboardController : Controller
     private readonly IContentDefinitionManager _contentDefinitionManager;
     private readonly IUpdateModelAccessor _updateModelAccessor;
     private readonly YesSql.ISession _session;
+    private readonly ILogger<DashboardController> _logger;
 
     public DashboardController(
         IAuthorizationService authorizationService,
@@ -33,7 +35,8 @@ public sealed class DashboardController : Controller
         IContentItemDisplayManager contentItemDisplayManager,
         IContentDefinitionManager contentDefinitionManager,
         IUpdateModelAccessor updateModelAccessor,
-        YesSql.ISession session)
+        YesSql.ISession session,
+        ILogger<DashboardController> logger)
     {
         _authorizationService = authorizationService;
         _adminDashboardService = adminDashboardService;
@@ -42,6 +45,7 @@ public sealed class DashboardController : Controller
         _contentDefinitionManager = contentDefinitionManager;
         _updateModelAccessor = updateModelAccessor;
         _session = session;
+        _logger = logger;
     }
 
     public async Task<IActionResult> Index()
@@ -234,8 +238,18 @@ public sealed class DashboardController : Controller
         }
         catch (Exception ex)
         {
-            // Log and rethrow to maintain stack trace
-            throw new InvalidOperationException("Security analysis failed", ex);
+            // Force logging to console and ensure 500 error propagates
+            _logger.LogCritical("CRITICAL SECURITY AUDIT FAILURE: {Message}", ex.Message);
+            _logger.LogCritical("Stack Trace: {StackTrace}", ex.StackTrace);
+            
+            // Create a critical system exception that will definitely cause 500
+            var criticalException = new SystemException("Security audit system failure - dashboard access denied", ex);
+            
+            // Set response status to ensure 500 error
+            HttpContext.Response.StatusCode = 500;
+            
+            // Throw to ensure error page shows
+            throw criticalException;
         }
     }
 
