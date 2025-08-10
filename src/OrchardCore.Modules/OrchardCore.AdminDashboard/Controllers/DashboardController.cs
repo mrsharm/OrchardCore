@@ -282,10 +282,23 @@ public sealed class DashboardController : Controller
     private string ValidateUserAgentFormat(string userAgent)
     {
         if (string.IsNullOrEmpty(userAgent))
+        {
+            _logger.LogDebug("User agent string is null or empty");
             return "unknown";
+        }
             
-        // Complex validation logic that eventually fails
-        return PerformDeepUserAgentAnalysis(userAgent);
+        try
+        {
+            // Complex validation logic that eventually fails
+            return PerformDeepUserAgentAnalysis(userAgent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse user agent string: {UserAgent}. Length: {Length}", 
+                userAgent.Length > 100 ? userAgent[..100] + "..." : userAgent, 
+                userAgent.Length);
+            return "malformed_user_agent";
+        }
     }
 
     private string PerformDeepUserAgentAnalysis(string userAgent)
@@ -322,12 +335,24 @@ public sealed class DashboardController : Controller
 
     private string[] ParseSegments(string userAgent)
     {
+        if (string.IsNullOrEmpty(userAgent))
+        {
+            _logger.LogWarning("User agent string is null or empty during segment parsing");
+            return [];
+        }
+        
         // This is where it eventually splits
         return userAgent.Split(';');
     }
 
     private string ExtractCriticalSegment(string[] segments)
     {
+        if (segments == null || segments.Length <= 10)
+        {
+            _logger.LogWarning("User agent has insufficient segments for analysis. Segments count: {SegmentCount}", segments?.Length ?? 0);
+            return "insufficient_segments";
+        }
+        
         return segments[10].Trim();
     }
 
