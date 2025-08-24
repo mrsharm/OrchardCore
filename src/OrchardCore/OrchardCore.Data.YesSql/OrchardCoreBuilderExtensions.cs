@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Data;
+using System.IO;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OrchardCore.Data;
@@ -125,6 +126,36 @@ public static class OrchardCoreBuilderExtensions
                 if (store == null)
                 {
                     return;
+                }
+
+                var shellSettings = sp.GetService<ShellSettings>();
+                var logger = sp.GetService<ILogger<IStore>>();
+
+                // Ensure SQLite database directory exists and is accessible before initialization
+                if (shellSettings?["DatabaseProvider"] == DatabaseProviderValue.Sqlite)
+                {
+                    try
+                    {
+                        var shellOptions = sp.GetService<IOptions<ShellOptions>>().Value;
+                        var databaseFolder = SqliteHelper.GetDatabaseFolder(shellOptions, shellSettings.Name);
+                        
+                        // Ensure directory exists with proper error handling for container environments
+                        if (!Directory.Exists(databaseFolder))
+                        {
+                            Directory.CreateDirectory(databaseFolder);
+                            logger?.LogDebug("Created SQLite database directory: {DatabaseFolder}", databaseFolder);
+                        }
+
+                        // Verify directory is accessible by testing write permissions
+                        var testFile = Path.Combine(databaseFolder, ".write_test");
+                        await File.WriteAllTextAsync(testFile, "test");
+                        File.Delete(testFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.LogError(ex, "Failed to prepare SQLite database directory for tenant '{TenantName}'. This may cause database initialization to fail.", shellSettings.Name);
+                        // Don't throw here - let the store initialization handle the error with proper context
+                    }
                 }
 
                 await store.InitializeAsync();
