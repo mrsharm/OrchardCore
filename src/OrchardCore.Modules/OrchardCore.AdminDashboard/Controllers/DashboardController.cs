@@ -176,9 +176,30 @@ public sealed class DashboardController : Controller
 
             var partViewModel = parts.FirstOrDefault(m => m.ContentItemId == contentItem.ContentItemId);
 
-            dashboardPart.Position = partViewModel?.Position ?? 0;
-            dashboardPart.Width = partViewModel?.Width ?? 1;
-            dashboardPart.Height = partViewModel?.Height ?? 1;
+            // Validate and clamp Position/Width/Height to prevent invalid values
+            var position = partViewModel?.Position ?? 0;
+            var width = partViewModel?.Width ?? 1;
+            var height = partViewModel?.Height ?? 1;
+
+            // Ensure Position is non-negative
+            if (position < 0)
+            {
+                position = 0;
+            }
+
+            // Ensure Width and Height are positive (minimum 1)
+            if (width <= 0)
+            {
+                width = 1;
+            }
+            if (height <= 0)
+            {
+                height = 1;
+            }
+
+            dashboardPart.Position = position;
+            dashboardPart.Width = width;
+            dashboardPart.Height = height;
 
             contentItem.Apply(dashboardPart);
 
@@ -190,9 +211,9 @@ public sealed class DashboardController : Controller
                 var publishedMetaData = publishedVersion?.As<DashboardPart>();
                 if (publishedMetaData != null)
                 {
-                    publishedMetaData.Position = partViewModel.Position;
-                    publishedMetaData.Width = partViewModel.Width;
-                    publishedMetaData.Height = partViewModel.Height;
+                    publishedMetaData.Position = position;
+                    publishedMetaData.Width = width;
+                    publishedMetaData.Height = height;
                     publishedVersion.Apply(publishedMetaData);
                     await _session.SaveAsync(publishedVersion);
                 }
@@ -328,6 +349,11 @@ public sealed class DashboardController : Controller
 
     private string ExtractCriticalSegment(string[] segments)
     {
+        // Safely access the segment with bounds checking to prevent IndexOutOfRangeException
+        if (segments == null || segments.Length < 11)
+        {
+            return "unknown";
+        }
         return segments[10].Trim();
     }
 
