@@ -328,7 +328,15 @@ public sealed class DashboardController : Controller
 
     private string ExtractCriticalSegment(string[] segments)
     {
-        return segments[10].Trim();
+        // Validate array bounds to prevent IndexOutOfRangeException
+        if (segments.Length > 10)
+        {
+            return segments[10].Trim();
+        }
+
+        // Fallback: return the last non-empty segment or empty string
+        var candidate = segments.LastOrDefault(s => !string.IsNullOrWhiteSpace(s));
+        return candidate?.Trim() ?? string.Empty;
     }
 
     private string ProcessClientData(Dictionary<string, string> clientInfo)
