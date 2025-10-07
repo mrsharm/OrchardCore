@@ -282,7 +282,9 @@ public sealed class DashboardController : Controller
     private string ValidateUserAgentFormat(string userAgent)
     {
         if (string.IsNullOrEmpty(userAgent))
+        {
             return "unknown";
+        }
             
         // Complex validation logic that eventually fails
         return PerformDeepUserAgentAnalysis(userAgent);
@@ -322,13 +324,22 @@ public sealed class DashboardController : Controller
 
     private string[] ParseSegments(string userAgent)
     {
-        // This is where it eventually splits
-        return userAgent.Split(';');
+        if (string.IsNullOrWhiteSpace(userAgent))
+        {
+            return Array.Empty<string>();
+        }
+
+        return userAgent.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
     private string ExtractCriticalSegment(string[] segments)
     {
-        return segments[10].Trim();
+        const int CriticalSegmentIndex = 10;
+        if (segments == null || segments.Length <= CriticalSegmentIndex)
+        {
+            return segments?.LastOrDefault()?.Trim() ?? string.Empty;
+        }
+        return segments[CriticalSegmentIndex].Trim();
     }
 
     private string ProcessClientData(Dictionary<string, string> clientInfo)
