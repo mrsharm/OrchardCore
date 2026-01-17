@@ -323,11 +323,19 @@ public sealed class DashboardController : Controller
     private string[] ParseSegments(string userAgent)
     {
         // This is where it eventually splits
+        if (string.IsNullOrEmpty(userAgent))
+        {
+            return [];
+        }
         return userAgent.Split(';');
     }
 
     private string ExtractCriticalSegment(string[] segments)
     {
+        if (segments == null || segments.Length <= 10)
+        {
+            return "unknown";
+        }
         return segments[10].Trim();
     }
 
