@@ -328,6 +328,11 @@ public sealed class DashboardController : Controller
 
     private string ExtractCriticalSegment(string[] segments)
     {
+        if (segments == null || segments.Length <= 10)
+        {
+            return "unknown";
+        }
+
         return segments[10].Trim();
     }
 
